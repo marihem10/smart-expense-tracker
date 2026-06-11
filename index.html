@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>합리적 소비 도우미</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="confettiCanvas" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999;"></canvas>
+
+    <div class="dashboard-container">
+        <header class="app-header">
+            <div>
+                <h1>합리적 소비 도우미</h1>
+                <p class="subtitle">나의 시간과 통장 잔고를 지키는 똑똑한 습관</p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button id="endMonthBtn" class="text-btn" style="font-size: 15px; font-weight: 700; color: var(--text-main); border: 2px dashed var(--accent-green); padding: 8px 12px; border-radius: 4px;">이번 달 정산</button>
+                <button id="resetBtn" class="text-btn" style="font-size: 15px; font-weight: 700; color: var(--text-sub); border: 2px dashed var(--border-color); padding: 8px 12px; border-radius: 4px;">완전초기화</button>
+            </div>
+        </header>
+
+        <main class="grid-layout">
+            <aside class="left-panel">
+                <section class="card settings-card">
+                    <h2>나의 소비 기준</h2>
+                    <div class="settings-grid">
+                        
+                        <div class="input-group" style="position: relative;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6px; height: 20px;">
+                                <label style="margin-bottom: 0;">시급(원)</label>
+                                <button id="toggleSalaryBtn" type="button" style="background: none; border: none; color: var(--text-main); font-size: 13px; font-weight: 700; cursor: pointer; padding: 0; text-decoration: underline;">시급계산기 🔄</button>
+                            </div>
+                            <input type="text" inputmode="numeric" id="wage" value="10,320">
+                            
+                            <div id="salaryCalcArea" class="floating-popup hidden">
+                                <div style="display: flex; gap: 8px; align-items: flex-end;">
+                                    <div style="flex: 1.5;">
+                                        <label style="font-size: 13px; margin-bottom: 4px; display: block; white-space: nowrap;">내 연봉(세전)</label>
+                                        <input type="text" inputmode="numeric" id="annualSalary" placeholder="예: 30,000,000" style="padding: 8px; font-size: 15px;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="font-size: 13px; margin-bottom: 4px; display: block; white-space: nowrap;">월 근무(시간)</label>
+                                        <input type="text" inputmode="numeric" id="workHours" value="209" style="padding: 8px; font-size: 15px;">
+                                    </div>
+                                </div>
+                                <p style="font-size: 12px; color: var(--text-sub); margin-top: 8px;">*기본값은 209시간입니다. 본인 기준에 맞게 수정하세요.</p>
+                                <div style="text-align: right; margin-top: 8px;">
+                                    <button id="closeSalaryBtn" class="primary-btn" style="padding: 6px 12px; font-size: 14px; width: auto; margin-top: 0;">적용/닫기</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <div style="display: flex; align-items: flex-end; margin-bottom: 6px; height: 20px;">
+                                <label style="margin-bottom: 0;">통장 잔고(원)</label>
+                            </div>
+                            <input type="text" inputmode="numeric" id="totalWealth" placeholder="예: 500,000">
+                        </div>
+                        <div class="input-group">
+                            <div style="display: flex; align-items: flex-end; margin-bottom: 6px; height: 20px;">
+                                <label style="margin-bottom: 0;">비교 물품</label>
+                            </div>
+                            <input type="text" id="compareName" placeholder="예: 커피">
+                        </div>
+                        <div class="input-group">
+                            <div style="display: flex; align-items: flex-end; margin-bottom: 6px; height: 20px;">
+                                <label style="margin-bottom: 0;">비교 단가(원)</label>
+                            </div>
+                            <input type="text" inputmode="numeric" id="comparePrice" placeholder="예: 4,500">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card action-card">
+                    <h2>구매 예정 물품</h2>
+                    <div class="action-grid">
+                        <div class="input-group full-width">
+                            <label>카테고리</label>
+                            <select id="itemCategory">
+                                <option value="전자기기">전자기기</option>
+                                <option value="음식/배달">음식/배달</option>
+                                <option value="게임/취미">취미</option>
+                                <option value="의류/패션">의류/패션</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="input-group full-width">
+                            <label>물품명</label>
+                            <input type="text" id="itemName" placeholder="예: 무접점 키보드">
+                        </div>
+                        <div class="input-group full-width">
+                            <label>가격 (원)</label>
+                            <input type="text" inputmode="numeric" id="itemPrice" placeholder="예: 150,000">
+                        </div>
+                    </div>
+                    <button id="calcBtn" class="primary-btn">비용 분석하기</button>
+                </section>
+            </aside>
+
+            <article class="right-panel" style="min-height: 0;">
+                <div class="top-stats-row">
+                    <section class="card goal-card">
+                        <div class="goal-header">
+                            <div class="goal-title">
+                                <span id="goalTitleText" class="goal-static-text">지출 한도: </span>
+                                <input type="text" id="goalName" class="inline-input" placeholder="">
+                            </div>
+                            <div class="goal-amount">
+                                <input type="text" inputmode="numeric" id="targetAmount" class="inline-input-num" placeholder="예: 300000"><span>원</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div id="progressBar" class="progress-bar-fill"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span id="totalSavedText"></span>
+                            <span id="progressPercent"></span>
+                        </div>
+                    </section>
+                </div>
+
+                <section class="card stats-card">
+                    <h2>카테고리별 유혹 통계</h2>
+                    <div id="categoryStats" class="stats-grid"></div>
+                </section>
+
+                <section class="card history-card flex-grow" style="min-height: 0;">
+                    <div class="history-header">
+                        <h2>지출 및 절약 기록</h2>
+                        <button id="openCalendarBtn" class="text-btn" style="font-size: 14px; font-weight: 700; color: var(--text-main); background: #EAE5DB; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border-color);">달력 보기</button>
+                    </div>
+                    <ul id="savedList" class="scrollable-list" style="min-height: 0;"></ul>
+                </section>
+            </article>
+        </main>
+    </div>
+
+    <div id="resultModal" class="modal-overlay hidden">
+        <div class="modal-content receipt-style">
+            <button id="closeModalBtn" class="close-btn" style="top: 10px; right: 15px; z-index: 10;">✕</button>
+            
+            <div class="receipt-scroll">
+                <h2 style="text-align: center; margin-bottom: 20px; font-weight: 800;">분석 결과 리포트</h2>
+                <div id="factMessage" class="modal-message"></div>
+                
+                <div class="reflection-area" style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border-color);">
+                    <p style="font-size: 15px; color: var(--text-sub); margin-bottom: 12px; font-weight: 600; text-align: center;">이 지출은 미리 계획된 것인가요?</p>
+                    <div class="need-want-toggle">
+                        <input type="radio" id="typePlanned" name="consumeType" value="planned" checked>
+                        <label for="typePlanned" class="toggle-btn stamp-btn">계획된 소비</label>
+                        <input type="radio" id="typeImpulse" name="consumeType" value="impulse">
+                        <label for="typeImpulse" class="toggle-btn stamp-btn">충동적 소비</label>
+                    </div>
+                    <div id="typeWarning" style="margin-top: 12px; font-size: 15px; text-align: center; color: var(--accent-red); font-weight: 600; min-height: 20px;"></div>
+                </div>
+
+                <div class="decision-buttons" style="margin-top: 20px;">
+                    <button id="giveUpBtn" class="success-btn">완전 포기</button>
+                    <button id="pendingBtn" class="warning-btn">3일 참기</button>
+                    <button id="buyBtn" class="ghost-btn">그냥 구매</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="warningModal" class="modal-overlay hidden" style="z-index: 3000;">
+        <div class="modal-content receipt-style" style="text-align: center; padding: 32px 24px; max-width: 380px;">
+            <div class="receipt-scroll">
+                <h2 style="font-size: 22px; color: var(--accent-red); margin-bottom: 16px;">🚨 고액 지출 승인 🚨</h2>
+                <p id="warningMessage" class="modal-message" style="background: transparent; font-size: 16px; margin-bottom: 16px; padding: 0; line-height: 1.6; border: none;"></p>
+                
+                <div style="background: #FDFCF8; border: 1px dashed #BDB4A3; padding: 16px; margin-bottom: 20px; text-align: left; border-radius: 4px;">
+                    <p style="font-size: 14px; color: #555; margin-bottom: 8px; font-weight: bold;">결제를 승인하려면 아래 문구를 똑같이 입력하세요.</p>
+                    <p style="font-size: 18px; color: var(--text-main); font-weight: 800; margin-bottom: 12px; text-align: center; letter-spacing: -0.5px;">나의 시간과 돈은 소중하다</p>
+                    <input type="text" id="warningSignature" placeholder="여기에 입력하세요" style="width: 100%; font-size: 16px; font-weight: 600; padding: 8px; border-bottom: 2px solid var(--border-color); text-align: center; background: transparent;" autocomplete="off">
+                </div>
+
+                <div class="decision-buttons" style="display: flex; gap: 8px; margin-top: 0;">
+                    <button id="cancelWarningBtn" class="ghost-btn" style="flex: 1; padding: 14px 0; font-size: 15px;">결제 취소</button>
+                    <button id="confirmWarningBtn" class="primary-btn" style="flex: 1; background: var(--accent-red); border: none; color: white; margin-top: 0; padding: 14px 0; font-size: 15px; opacity: 0.4; cursor: not-allowed;" disabled>그래도 구매</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteItemModal" class="modal-overlay hidden" style="z-index: 3000;">
+        <div class="modal-content receipt-style" style="text-align: center; padding: 32px 24px; min-height: auto;">
+            <h2 style="font-size: 20px; color: var(--text-main); margin-bottom: 16px;">기록 삭제</h2>
+            <p class="modal-message" style="background: transparent; font-size: 16px; margin-bottom: 24px; padding: 0; border: none;">이 기록을 삭제하시겠습니까?<br>(삭제된 데이터는 복구할 수 없습니다)</p>
+            <div class="decision-buttons" style="display: flex; gap: 8px;">
+                <button id="cancelDeleteBtn" class="ghost-btn" style="flex: 1; padding: 14px 0; font-size: 16px;">취소</button>
+                <button id="confirmDeleteBtn" style="flex: 1; margin-top: 0; padding: 14px 0; font-size: 16px; background: var(--accent-red); color: white; border: none; cursor: pointer; border-radius: 4px;">삭제하기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="resetAllModal" class="modal-overlay hidden" style="z-index: 3000;">
+        <div class="modal-content receipt-style" style="text-align: center; padding: 32px 24px; min-height: auto;">
+            <h2 style="font-size: 20px; color: var(--accent-red); margin-bottom: 16px;">🚨 완전 초기화 🚨</h2>
+            <p class="modal-message" style="background: transparent; font-size: 16px; margin-bottom: 24px; padding: 0; border: none;">모든 기록과 설정이 초기화됩니다.<br>정말 진행하시겠습니까?</p>
+            <div class="decision-buttons" style="display: flex; gap: 8px;">
+                <button id="cancelResetBtn" class="ghost-btn" style="flex: 1; padding: 14px 0; font-size: 16px;">취소</button>
+                <button id="confirmResetBtn" style="flex: 1; background: var(--accent-red); margin-top: 0; padding: 14px 0; font-size: 16px; border: none; color: white; cursor: pointer; border-radius: 4px;">초기화</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="celebrationModal" class="modal-overlay hidden" style="z-index: 2000;">
+        <div class="modal-content receipt-style" style="text-align: center; padding: 40px 20px;">
+            <h2 id="celebTitle" style="font-size: 28px; color: var(--text-main); margin-bottom: 16px; font-weight: 800;">목표 달성!</h2>
+            <p id="celebrationMessage" class="modal-message" style="background: transparent; font-size: 18px; margin-bottom: 24px; padding: 0; border: none; font-weight: 600;">
+            </p>
+            <button id="newGoalBtn" class="primary-btn" style="font-size: 16px;">확인</button>
+            <button id="closeCelebrationBtn" class="close-btn" style="top: 10px; right: 15px;">✕</button>
+        </div>
+    </div>
+
+    <div id="emptyInputModal" class="modal-overlay hidden" style="z-index: 3000;">
+        <div class="modal-content receipt-style" style="text-align: center; padding: 32px 24px; min-height: auto;">
+            <h2 style="font-size: 20px; color: var(--accent-red); margin-bottom: 16px;">🚨 입력 오류 🚨</h2>
+            <p class="modal-message" style="background: transparent; font-size: 16px; margin-bottom: 24px; padding: 0; border: none;">물품명과 가격을 정확히 입력해 주세요.</p>
+            <div style="display: flex; justify-content: center; width: 100%;">
+                <button id="closeEmptyInputBtn" style="background: var(--accent-main); color: #fff; width: 100%; padding: 14px 0; font-size: 16px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer;">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="calendarModal" class="modal-overlay hidden" style="z-index: 2500;">
+        <div class="modal-content receipt-style" style="max-width: 500px; padding: 24px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <button id="prevMonthBtn" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-main); font-weight:bold;">&lt;</button>
+                <h2 id="calendarMonthText" style="margin:0; font-size: 20px; font-weight: 800;">2026년 6월</h2>
+                <button id="nextMonthBtn" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-main); font-weight:bold;">&gt;</button>
+            </div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+            <button id="closeCalendarBtn" class="close-btn" style="top: 10px; right: 15px;">✕</button>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
